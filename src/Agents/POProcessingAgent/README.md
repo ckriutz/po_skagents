@@ -1,96 +1,140 @@
 # POProcessingAgent
 
-A Semantic Kernel A2A (Agent-to-Agent) agent for processing Purchase Orders using AI capabilities.
+A Semantic Kernel A2A (Agent-to-Agent) agent for processing Purchase Order images using AI capabilities. This agent extracts key information from purchase order images and returns structured JSON data.
 
 ## Overview
 
-This agent demonstrates how to use Microsoft's Semantic Kernel A2A framework to build intelligent agents that can process, validate, and analyze Purchase Orders using AI.
+This agent demonstrates how to use Microsoft's Semantic Kernel A2A framework to build intelligent agents that can analyze purchase order images and extract structured data using Azure OpenAI's vision capabilities.
 
 ## Features
 
-- **Purchase Order Processing**: Intelligent analysis and processing of purchase order data
-- **Validation**: AI-powered validation of purchase order fields and business rules
-- **Summarization**: Generate concise summaries of purchase orders
-- **Custom Queries**: Process custom questions and analysis requests about purchase orders
+- **Image Processing**: Analyzes purchase order images (PNG format supported)
+- **Data Extraction**: Extracts key details including PO Number, totals, supplier information, and department
+- **JSON Output**: Returns structured JSON data following a predefined schema
+- **A2A Integration**: Fully integrated with Microsoft's Agent-to-Agent framework
+- **RESTful API**: Exposes HTTP endpoints for agent communication
 
 ## Project Structure
 
 ```
 POProcessingAgent/
-├── Models/
-│   └── PurchaseOrder.cs       # Purchase order data models
-├── Services/
-│   └── POProcessingAgentService.cs  # Main agent service
-├── Program.cs                 # Console application entry point
-├── README.md                  # This file
-└── POProcessingAgent.csproj   # Project file
+├── POProcessingAgent.cs       # Main agent implementation
+├── PurchaseOrder.cs          # Purchase order data models
+├── Program.cs                # ASP.NET Core web application entry point
+├── README.md                 # This file
+└── POProcessingAgent.csproj  # Project file (.NET 9.0 Web SDK)
 ```
 
-## Models
+## Architecture
 
-### PurchaseOrder
-The main data model representing a purchase order with:
-- Supplier information (name, address, etc.)
+### POProcessingAgent Class
+The main agent class that:
+- Wraps a `ChatCompletionAgent` from Semantic Kernel
+- Handles A2A message processing and image analysis
+- Integrates with Azure OpenAI for vision capabilities
+- Manages agent lifecycle and task manager attachment
+
+### PurchaseOrder Models
+Data models representing purchase order structure:
+
+**PurchaseOrder**: Main model with supplier info, line items, metadata, and calculated totals
+- Supplier information (name, address, contact details)
 - Line items collection
 - Purchase order metadata (PO number, created by, department)
-- Tax calculations
+- Tax calculations with automatic subtotal, tax amount, and grand total
 - Approval workflow fields
 
-### PurchaseOrderItem
-Represents individual line items in a purchase order:
-- Item code and description
-- Quantity and unit price
-- Line total calculations
+**PurchaseOrderItem**: Individual line items with item code, description, quantity, unit price, and line total
 
-## Services
-
-### POProcessingAgentService
-The main service class that provides:
-- `ProcessPurchaseOrderAsync()` - General purpose PO processing with custom queries
-- `ValidatePurchaseOrderAsync()` - AI-powered validation
-- `SummarizePurchaseOrderAsync()` - Generate PO summaries
+### Program.cs
+ASP.NET Core web application that:
+- Bootstraps the Semantic Kernel A2A TaskManager
+- Configures dependency injection and HTTP client
+- Exposes A2A endpoints (`/`, `/.well-known/agent-card.json`)
+- Provides health check endpoint (`/health`)
 
 ## Configuration Required
 
-To use this agent, you'll need to configure:
+The agent requires these environment variables at startup:
+- `DEPLOYMENT_NAME` - Azure OpenAI deployment name
+- `ENDPOINT` - Azure OpenAI endpoint URL
+- `API_KEY` - Azure OpenAI API key
 
-1. **A2A Agent Endpoint**: URL to your A2A agent service
-2. **HTTP Client**: Properly configured HttpClient for API communication
-3. **Agent Card**: Resolution of the agent card for capabilities discovery
+If missing, run the command: `source .env` to set the required environment variables from the `.env` file.
 
 ## Dependencies
 
-- `Microsoft.SemanticKernel.Agents.A2A` - Core A2A agent functionality
-- `System.Text.Json` - JSON serialization for data exchange
+- `A2A` (0.3.1-preview) - Core A2A framework
+- `A2A.AspNetCore` (0.3.1-preview) - ASP.NET Core integration
+- `Microsoft.SemanticKernel.Agents.A2A` (1.65.0-alpha) - A2A agent functionality
+- `Microsoft.SemanticKernel.Agents.Core` (1.65.0) - Core agent framework
+- `Microsoft.SemanticKernel.Connectors.AzureOpenAI` (1.65.0) - Azure OpenAI connector
+- `Microsoft.SemanticKernel.Connectors.OpenAI` (1.65.0) - OpenAI connector
+- `System.Text.Json` (9.0.9) - JSON serialization
 
-## Usage Example
+## Agent Output Schema
 
-```csharp
-// Configure A2A client and agent (configuration details needed)
-var client = new A2AClient(agentUrl, httpClient);
-var cardResolver = new A2ACardResolver(agentUrl, httpClient);
-var agentCard = await cardResolver.GetAgentCardAsync();
-var agent = new A2AAgent(client, agentCard);
+The agent extracts purchase order data and returns it as JSON:
 
-// Create the processing service
-var agentService = new POProcessingAgentService(agent);
-
-// Process a purchase order
-var result = await agentService.ValidatePurchaseOrderAsync(purchaseOrder);
-Console.WriteLine(result);
+```json
+{
+  "poNumber": "string",
+  "subTotal": "number",
+  "tax": "number", 
+  "grandTotal": "number",
+  "supplierName": "string",
+  "buyerDepartment": "string",
+  "notes": "string"
+}
 ```
 
-## Running the Application
+## API Endpoints
+
+- `GET /health` - Health check endpoint
+- `POST /` - A2A message processing endpoint
+- `GET /.well-known/agent-card.json` - Agent capabilities discovery
+
+## Building and Running
+
+### Prerequisites
+- .NET 9.0 SDK
+- Azure OpenAI access with vision-capable model
+
+### Build
+```bash
+dotnet restore  # Only needed after package changes
+dotnet build    # For CI-style validation
+```
+
+### Run
+```bash
+dotnet run      # Launch the web host on default Kestrel ports
+```
+
+### Health Check
+Once the app is running, verify it's responding:
 
 ```bash
-dotnet run
+curl http://localhost:5000/health
 ```
 
-This will demonstrate the purchase order data structure and show sample output.
+Expected response: `{"status":"healthy"}`
+
+### Agent Card
+The agent capabilities can be discovered at:
+```bash
+curl http://localhost:5000/.well-known/agent-card.json
+```
+
+## Troubleshooting
+
+- **Environment Variables**: Ensure `DEPLOYMENT_NAME`, `ENDPOINT`, and `API_KEY` are set
+- **Build Errors**: Check that all preview packages are compatible
+- **Agent Card**: Located at `http://localhost:5000/.well-known/agent-card.json`
 
 ## Next Steps
 
-1. Configure the A2A agent endpoint and authentication
-2. Implement specific business rules for your organization
-3. Add additional processing capabilities as needed
-4. Integrate with your existing systems
+1. Configure Azure OpenAI environment variables
+2. Test with purchase order images
+3. Extend the agent for additional document types
+4. Add validation logic for extracted data

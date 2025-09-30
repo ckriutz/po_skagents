@@ -357,5 +357,5 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
-
+.env
 .DS_Store

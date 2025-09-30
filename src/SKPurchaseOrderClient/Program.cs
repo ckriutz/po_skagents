@@ -11,6 +11,10 @@ var deploymentName = Environment.GetEnvironmentVariable("DEPLOYMENT_NAME") ?? th
 var endpoint = Environment.GetEnvironmentVariable("ENDPOINT") ?? throw new ArgumentException("ENDPOINT must be provided");
 var apiKey = Environment.GetEnvironmentVariable("API_KEY") ?? throw new ArgumentException("API_KEY must be provided");
 
+// Create a cancellation token source for graceful shutdown
+using var cancellationTokenSource = new CancellationTokenSource();
+var cancellationToken = cancellationTokenSource.Token;
+
 var builder = Kernel.CreateBuilder();
 builder.Services.AddLogging(configure => configure.AddConsole());
 builder.Services.AddAzureOpenAIChatCompletion(deploymentName, endpoint, apiKey);
@@ -21,51 +25,23 @@ var chatCompletionService = kernel.GetRequiredService<IChatCompletionService>();
 // OPTION 1: Create the intake agent WITHOUT plugins (simple extraction only)
 var intakeAgent = new IntakeAgent(kernel);
 
-// OPTION 2: Create the intake agent WITH validation plugins (AI will automatically call validation functions)
-//var intakeAgent = IntakeAgent.CreateWithValidation(kernel);
-
-//Console.WriteLine($"\nUsing agent: {intakeAgent.Name}");
-//Console.WriteLine($"Agent has access to {intakeAgent.Kernel.Plugins.Count} plugin(s)");
-
 // Path to the purchase orders folder
 string purchaseOrdersPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "PurchaseOrders/AdventureWorksPO_HROrder.png");
 
-//string[] imageFiles = Directory.GetFiles(purchaseOrdersPath, "*.png");
-
-//if (imageFiles.Length == 0)
-//{
-//Console.WriteLine("No PNG files found in PurchaseOrders folder.");
-//return;
-//}
-
 Console.WriteLine($"\nProcessing: {purchaseOrdersPath}");
-var response = await intakeAgent.InvokeAsync("Can you extract the purchase order information from this image?", new CancellationToken());
-//await foreach (var response in 
-//{
-    Console.WriteLine($"Extracted Data: {response}");
-//}
+
+var response = await intakeAgent.InvokeAsync(purchaseOrdersPath, cancellationToken);
+Console.WriteLine($"Extracted Data: {response}");
 Console.WriteLine("Done Processing.");
-// Process each purchase order image
-//foreach (string imagePath in imageFiles)
-//{
-    //Console.WriteLine($"\n=== Processing: {Path.GetFileName(imagePath)} ===");
 
-    //try
-    //{
-        // Option 1: Stream all responses (current approach)
-        //await foreach (var response in intakeAgent.ProcessPurchaseOrderAsync(imagePath))
-        //{
-            //Console.WriteLine($"Extracted Data: {response.Message.Content}");
-        //}
+var jsonOptions = new System.Text.Json.JsonSerializerOptions
+{
+    PropertyNameCaseInsensitive = true
+};
+Models.PurchaseOrder po = System.Text.Json.JsonSerializer.Deserialize<Models.PurchaseOrder>(response, jsonOptions)!;
+Console.WriteLine($"PO Number: {po.PoNumber}");
 
-        // Option 2: Get just the first response (simpler)
-        // string extractedData = await intakeAgent.ProcessSinglePurchaseOrderAsync(imagePath);
-        // Console.WriteLine($"Extracted Data: {extractedData}");
-    //}
- //catch (Exception ex)
-   //{
-   //    Console.WriteLine($"Error processing {Path.GetFileName(imagePath)}: {ex.Message}");
-   //}
-
-   //Console.WriteLine(new string('-', 50));
-//}
+//Now lets analyze the PO to see if it can be approved.
+var processingAgent = new ProcessingAgent(kernel);
+var processingResponse = await processingAgent.InvokeAsync(po, cancellationToken);
+Console.WriteLine($"Processing Response: {processingResponse}");

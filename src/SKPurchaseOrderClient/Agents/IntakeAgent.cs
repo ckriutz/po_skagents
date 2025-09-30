@@ -44,52 +44,42 @@ public class IntakeAgent
         };
     }
     
-    public async Task<string> InvokeAsync(string message, CancellationToken cancellationToken = default)
+    public async Task<string> InvokeAsync(string filePath, CancellationToken cancellationToken = default)
     {
-        var userMessage = new ChatMessageContent(AuthorRole.User, [new TextContent(message)]);
-        await foreach (var response in _agent.InvokeAsync(userMessage, cancellationToken: cancellationToken))
+        if (!File.Exists(filePath))
+        {
+            throw new FileNotFoundException($"Purchase order file not found: {filePath}");
+        }
+
+        // Read the image file
+        byte[] imageData = await File.ReadAllBytesAsync(filePath, cancellationToken);
+
+        // Determine the image format based on file extension
+        string mimeType = Path.GetExtension(filePath).ToLowerInvariant() switch
+        {
+            ".png" => "image/png",
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".gif" => "image/gif",
+            ".bmp" => "image/bmp",
+            _ => "image/png" // default to PNG
+        };
+
+        // Create a message with the image
+        var messageWithImage = new ChatMessageContent(
+            AuthorRole.User,
+            [
+                new TextContent("Please extract the purchase order information from this image according to your instructions."),
+                new ImageContent(imageData, mimeType)
+            ]);
+
+        // Process the image with the agent
+        await foreach (var response in _agent.InvokeAsync(messageWithImage, cancellationToken: cancellationToken))
         {
             return response.Message.Content ?? string.Empty;
         }
-        
+
         return string.Empty;
     }
-    // public async Task<string> InvokeAsync(string filePath, CancellationToken cancellationToken = default)
-    // {
-    //     if (!File.Exists(filePath))
-    //     {
-    //         throw new FileNotFoundException($"Purchase order file not found: {filePath}");
-    //     }
-
-    //     // Read the image file
-    //     byte[] imageData = await File.ReadAllBytesAsync(filePath, cancellationToken);
-
-    //     // Determine the image format based on file extension
-    //     string mimeType = Path.GetExtension(filePath).ToLowerInvariant() switch
-    //     {
-    //         ".png" => "image/png",
-    //         ".jpg" or ".jpeg" => "image/jpeg",
-    //         ".gif" => "image/gif",
-    //         ".bmp" => "image/bmp",
-    //         _ => "image/png" // default to PNG
-    //     };
-
-    //     // Create a message with the image
-    //     var messageWithImage = new ChatMessageContent(
-    //         AuthorRole.User,
-    //         [
-    //             new TextContent("Please extract the purchase order information from this image according to your instructions."),
-    //             new ImageContent(imageData, mimeType)
-    //         ]);
-
-    //     // Process the image with the agent
-    //     await foreach (var response in _agent.InvokeAsync(messageWithImage, cancellationToken: cancellationToken))
-    //     {
-    //         return response.Message.Content ?? string.Empty;
-    //     }
-
-    //     return string.Empty;
-    // }
 
     // Factory method for creating a purchase order intake agent WITH validation plugins
     // public static ChatCompletionAgent CreateWithValidation(Kernel kernel)

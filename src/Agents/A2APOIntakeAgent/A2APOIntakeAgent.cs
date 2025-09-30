@@ -1,18 +1,9 @@
 using A2A;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
-using Microsoft.SemanticKernel.Connectors.OpenAI;
-using Microsoft.SemanticKernel.Agents.A2A;
 using Microsoft.SemanticKernel.ChatCompletion;
-using System;
 
-/// <summary>
-/// POProcessingAgent - A Semantic Kernel A2A agent for processing Purchase Orders
-/// This agent demonstrates how to work with PurchaseOrder objects using AI capabilities
-/// </summary>
-public class POProcessingAgent
+public class A2APOIntakeAgent
 {
     private readonly ILogger _logger;
     private readonly HttpClient _httpClient;
@@ -20,7 +11,7 @@ public class POProcessingAgent
     private readonly ChatCompletionAgent _agent;
     private ITaskManager? _taskManager;
 
-    public POProcessingAgent(ILogger logger, HttpClient httpClient, IConfiguration configuration)
+    public A2APOIntakeAgent(ILogger logger, HttpClient httpClient, IConfiguration configuration)
     {
         _logger = logger;
         _httpClient = httpClient;
@@ -43,11 +34,11 @@ public class POProcessingAgent
 
         var kernel = builder.Build();
 
-        var poProcessingAgent = new ChatCompletionAgent()
+        var poIntakeAgent = new ChatCompletionAgent()
         {
             Kernel = kernel,
             Arguments = new KernelArguments(new PromptExecutionSettings() { FunctionChoiceBehavior = FunctionChoiceBehavior.Auto() }),
-            Name = "POProcessingAgent", // Good to keep in mind here that there CAN NOT be a space in the name.
+            Name = "POIntakeAgent", // Good to keep in mind here that there CAN NOT be a space in the name.
             Description = "An agent that processes Purchase Order Images and extracts key details.",
             Instructions =
             """
@@ -66,11 +57,9 @@ public class POProcessingAgent
             """
         };
 
-        _logger.LogInformation("Purchase Order Agent created successfully");
-        return poProcessingAgent;
+        _logger.LogInformation("Purchase Order Intake Agent initialized successfully.");
+        return poIntakeAgent;
     }
-
-    
 
     public void Attach(ITaskManager taskManager)
     {
@@ -94,24 +83,24 @@ public class POProcessingAgent
 
         var orderAgentSkill = new AgentSkill()
         {
-            Id = "purchase-order-processing-agent",
-            Name = "PurchaseOrderProcessingAgent",
+            Id = "purchase-order-intake-agent",
+            Name = "PurchaseOrderIntakeAgent",
             Description = "A skill that processes Purchase Order Images and extracts key details.",
             Tags = ["purchase-order", "image-processing", "data-extraction"],
             Examples =
             [
-                "Return a list of all orders.",
-                "Get order details by Customer ID.",
-                "Get order details by Order ID.",
-                "Update order status.",
-                "Create a new order.",
+                "Extract key details from this purchase order image.",
+                "Analyze the attached PO image and return the data as JSON.",
+                "Process this purchase order image and provide the PO number, total amount, supplier name, and buyer department.",
+                "Verify this purchase order image is a valid PO and extract the relevant information.",
+                "Scan the provided PO image and return the extracted details in JSON format."
             ],
         };
 
         return Task.FromResult(new AgentCard()
         {
-            Name = "The Order Agent",
-            Description = "An agent that manages customer orders.",
+            Name = "The Purchase Order Intake Agent",
+            Description = "An agent that manages purchase order images.",
             Url = agentUrl,
             Version = "1.0.0",
             DefaultInputModes = ["image/png"],
@@ -125,10 +114,16 @@ public class POProcessingAgent
     private async Task<A2AResponse> ProcessMessageAsync(MessageSendParams messageSendParams, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Processing message.");
-        //if (cancellationToken.IsCancellationRequested)
-        //{
-            //return new AgentMessage { Message = null, Error = "Operation cancelled" };
-        //}
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return new AgentMessage
+            {
+                Role = MessageRole.Agent,
+                MessageId = Guid.NewGuid().ToString(),
+                ContextId = messageSendParams.Message.ContextId,
+                Parts = [new TextPart { Text = "Request was cancelled." }]
+            };
+        }
 
         var filePart = messageSendParams.Message.Parts.OfType<FilePart>().First();
 
@@ -136,7 +131,7 @@ public class POProcessingAgent
         try
         {
             var chatMessage = new ChatMessageContent(AuthorRole.User, "Please analyze this purchase order image and extract the key details.");
-            
+
             // Process the image using the dedicated function
             var imageContent = ProcessImageFromFilePart(filePart);
             if (imageContent != null)
@@ -177,7 +172,7 @@ public class POProcessingAgent
             };
         }
     }
-
+    
     /// <summary>
     /// Processes a FilePart containing image data and returns an ImageContent object
     /// </summary>

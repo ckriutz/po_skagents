@@ -1,12 +1,11 @@
-# Copilot Instructions for `po_skagents`
+# Copilot Instructions for `A2APOIntakeAgent` project
 
 ## Big picture
-- This project hosts a minimal ASP.NET Core app (`Program.cs`) that boots a Semantic Kernel A2A TaskManager, exposes A2A endpoints, and wires in a custom `POProcessingAgent`.
-- `POProcessingAgent` wraps a `ChatCompletionAgent` and translates A2A events into Semantic Kernel calls. Initialization depends on Azure OpenAI-like environment variables and logs key milestones.
-- Purchase orders are represented with simple POCOs in `PurchaseOrder.cs`; they provide subtotal/tax/total helpers used by downstream AI prompts.
+- This project hosts a minimal ASP.NET Core app (`Program.cs`) that boots a Semantic Kernel A2A TaskManager, exposes A2A endpoints, and wires in a custom `A2APOIntakeAgent`.
+- `A2APOIntakeAgent` wraps a `ChatCompletionAgent` and translates A2A events into Semantic Kernel calls. Initialization depends on Azure OpenAI-like environment variables and logs key milestones.
 
 ## Essential workflows
-- Build and run with the standard .NET CLI inside `src/Agents/POProcessingAgent`:
+- Build and run with the standard .NET CLI inside `src/Agents/A2APOIntakeAgent`:
   - `dotnet restore` (only needed after package changes)
   - `dotnet build` for CI-style validation
   - `dotnet run` to launch the local web host on the default Kestrel ports.

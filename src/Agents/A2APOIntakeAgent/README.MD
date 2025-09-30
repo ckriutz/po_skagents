@@ -1,10 +1,17 @@
-# POProcessingAgent
+# A2A PO Intake Agent
 
 A Semantic Kernel A2A (Agent-to-Agent) agent for processing Purchase Order images using AI capabilities. This agent extracts key information from purchase order images and returns structured JSON data.
 
 ## Overview
 
 This agent demonstrates how to use Microsoft's Semantic Kernel A2A framework to build intelligent agents that can analyze purchase order images and extract structured data using Azure OpenAI's vision capabilities.
+
+## When Running
+Ideally, specify the port you want this running on for testing:
+
+```
+ASPNETCORE_URLS=http://localhost:9999 dotnet run
+```
 
 ## Features
 
@@ -17,34 +24,21 @@ This agent demonstrates how to use Microsoft's Semantic Kernel A2A framework to 
 ## Project Structure
 
 ```
-POProcessingAgent/
-├── POProcessingAgent.cs       # Main agent implementation
-├── PurchaseOrder.cs          # Purchase order data models
+A2APOIntakeAgent/
+├── A2APOIntakeAgent.cs       # Main agent implementation
 ├── Program.cs                # ASP.NET Core web application entry point
 ├── README.md                 # This file
-└── POProcessingAgent.csproj  # Project file (.NET 9.0 Web SDK)
+└── A2APOIntakeAgent.csproj  # Project file (.NET 9.0 Web SDK)
 ```
 
 ## Architecture
 
-### POProcessingAgent Class
+### A2APOIntakeAgent Class
 The main agent class that:
 - Wraps a `ChatCompletionAgent` from Semantic Kernel
 - Handles A2A message processing and image analysis
 - Integrates with Azure OpenAI for vision capabilities
 - Manages agent lifecycle and task manager attachment
-
-### PurchaseOrder Models
-Data models representing purchase order structure:
-
-**PurchaseOrder**: Main model with supplier info, line items, metadata, and calculated totals
-- Supplier information (name, address, contact details)
-- Line items collection
-- Purchase order metadata (PO number, created by, department)
-- Tax calculations with automatic subtotal, tax amount, and grand total
-- Approval workflow fields
-
-**PurchaseOrderItem**: Individual line items with item code, description, quantity, unit price, and line total
 
 ### Program.cs
 ASP.NET Core web application that:
@@ -60,7 +54,9 @@ The agent requires these environment variables at startup:
 - `ENDPOINT` - Azure OpenAI endpoint URL
 - `API_KEY` - Azure OpenAI API key
 
-If missing, run the command: `source .env` to set the required environment variables from the `.env` file.
+Ideally rename the .env.sample file to .env and populate it with your variables.
+NOTE: This app does not read from the file (yet)
+Run the command: `source .env` to set the required environment variables from the `.env` file.
 
 ## Dependencies
 

@@ -1,3 +1,4 @@
+using System.Data;
 using A2A;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
@@ -98,8 +99,8 @@ public class A2APOProcessingAgent
 
         return Task.FromResult(new AgentCard()
         {
-            Name = "The Purchase Order Intake Agent",
-            Description = "An agent that manages purchase order images.",
+            Name = "The Purchase Order Processing Agent",
+            Description = "An agent that approves Purchase Orders based on business rules.",
             Url = agentUrl,
             Version = "1.0.0",
             DefaultInputModes = ["image/png"],
@@ -124,12 +125,12 @@ public class A2APOProcessingAgent
         }
 
         var textPart = messageSendParams.Message.Parts.OfType<TextPart>().First();
-
+        Console.WriteLine($"Received message part: {textPart.Text}");
         // Okay, lets process the message.
         try
         {
-            var chatMessage = new ChatMessageContent(AuthorRole.User, "Please analyze this purchase order image and extract the key details.");
-
+            var chatMessage = new ChatMessageContent(AuthorRole.User, "Please analyze the details of this purchase order, and process the rules.");
+            chatMessage.Items.Add(new TextContent(textPart.Text ?? throw new DataException("No text found in message part."))); 
             var artifact = new Artifact();
             await foreach (AgentResponseItem<ChatMessageContent> response in _agent.InvokeAsync([chatMessage], cancellationToken: cancellationToken))
             {

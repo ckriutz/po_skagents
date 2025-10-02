@@ -28,20 +28,13 @@ public class PurchaseOrder
     public decimal TaxRate { get; set; }
 
     // Computed totals
-    public decimal SubTotal => Items?.Sum(i => i.LineTotal) ?? 0m;
-    public decimal TaxAmount => Math.Round(SubTotal * TaxRate, 2);
-    public decimal GrandTotal => Math.Round(SubTotal + TaxAmount, 2);
-
-    // Keep Amount for compatibility; return grand total
-    public decimal Amount
-    {
-        get => GrandTotal;
-        set { /* retained for binary compatibility; ignored */ }
-    }
+    public decimal SubTotal { get; set; }
+    public decimal Tax { get; set; }
+    public decimal GrandTotal { get; set; }
 
     // Approval flow
     public bool IsApproved { get; set; }
-    public string? RejectionReason { get; set; }
+    public string? ApprovalReason { get; set; }
 }
 
 public class PurchaseOrderItem

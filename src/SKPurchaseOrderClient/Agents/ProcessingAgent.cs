@@ -1,6 +1,3 @@
-// The goal of this agent is to take in the JSON that was produced from
-// the IntakeAgent, and determine if it can be approved or not.
-
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.ChatCompletion;

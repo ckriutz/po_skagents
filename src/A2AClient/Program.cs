@@ -9,14 +9,20 @@ using Microsoft.SemanticKernel;
 
 Console.WriteLine("Starting PO SK Agents Client...");
 
-A2ACardResolver processingAgentCardResolver = new A2ACardResolver(new Uri("http://localhost:5000"));
+A2ACardResolver intakeAgentCardResolver = new A2ACardResolver(new Uri("http://localhost:5000"));
+AgentCard intakeAgentCard = await intakeAgentCardResolver.GetAgentCardAsync();
+Console.WriteLine($"Processing Agent Card: {intakeAgentCard.Name}");
+A2AClient intakeAgentClient = new A2AClient(new Uri(intakeAgentCard.Url));
+
+A2ACardResolver processingAgentCardResolver = new A2ACardResolver(new Uri("http://localhost:5207"));
 AgentCard processingAgentCard = await processingAgentCardResolver.GetAgentCardAsync();
 Console.WriteLine($"Processing Agent Card: {processingAgentCard.Name}");
 A2AClient processingAgentClient = new A2AClient(new Uri(processingAgentCard.Url));
 
+await MessageIntakeAgent(intakeAgentClient);
 await MessageProcessingAgent(processingAgentClient);
 
-async Task MessageProcessingAgent(A2AClient agentClient)
+async Task<PurchaseOrder> MessageIntakeAgent(A2AClient agentClient)
 {
     Console.WriteLine("Invoking Message Processing Agent...");
     var fileBytes = File.ReadAllBytes("PurchaseOrders/AdventureWorksPO_HROrder.png");
@@ -41,4 +47,14 @@ async Task MessageProcessingAgent(A2AClient agentClient)
         if (textPart != null) break;
     }
     Console.WriteLine($"Response Text Part: {textPart?.Text}");
+
+    PurchaseOrder po = new PurchaseOrder();
+    //po.Amount
+    //return textPart?.Text;
+    return po;
+}
+
+async Task<PurchaseOrder> MessageProcessingAgent(A2AClient agentClient)
+{
+
 }
